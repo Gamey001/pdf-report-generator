@@ -1,4 +1,4 @@
-"""SQLite access: connections and the orders table.
+"""SQLite access: connections, schema, and the report bookkeeping table.
 
 SQLite is built into Python (``sqlite3``), so there is nothing to install and the
 whole database is a single file on disk.
@@ -21,6 +21,13 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 CREATE INDEX IF NOT EXISTS ix_orders_created_at ON orders(created_at);
+
+CREATE TABLE IF NOT EXISTS reports (
+    id         INTEGER PRIMARY KEY,
+    path       TEXT,                         -- filled in once the PDF is on disk
+    created_at TEXT    NOT NULL,             -- 'YYYY-MM-DD HH:MM:SS'
+    days       INTEGER NOT NULL              -- the report window that was requested
+);
 """
 
 
