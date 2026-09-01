@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+  /* ---- Print setup ------------------------------------------------------ */
+  /* Margins are set once, in page.pdf() — they must leave room for the
+     header/footer templates Playwright draws on every page. */
+  @page { size: A4; }
+
+  :root {
+    --ink: #12203a;
+    --muted: #64748b;
+    --line: #dbe3ef;
+    --brand: #1d4ed8;
+    --brand-soft: #eef3ff;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font: 11px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-print-color-adjust: exact;   /* keep background colours when printing */
+    print-color-adjust: exact;
+  }
+
+  /* ---- Masthead --------------------------------------------------------- */
+  .masthead {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 3px solid var(--brand);
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  .logo {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: var(--brand); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; letter-spacing: .5px;
+  }
+  .masthead h1 { margin: 0; font-size: 19px; letter-spacing: -.2px; }
+  .masthead .sub { margin: 2px 0 0; color: var(--muted); font-size: 10.5px; }
+
+  /* ---- Stat cards ------------------------------------------------------- */
+  .stats { display: flex; gap: 10px; margin-bottom: 20px; }
+  .stat {
+    flex: 1;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--brand-soft);
+    padding: 10px 12px;
+  }
+  .stat .label { color: var(--muted); font-size: 9.5px; text-transform: uppercase; letter-spacing: .6px; }
+  .stat .value { font-size: 19px; font-weight: 700; margin-top: 3px; }
+
+  /* ---- Sections & tables ------------------------------------------------ */
+  h2 {
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--muted); margin: 0 0 8px;
+  }
+  section { margin-bottom: 20px; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead { display: table-header-group; }  /* repeat the header on every page */
+  tfoot { display: table-footer-group; }
+
+  th, td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+  th {
+    background: #f4f7fc;
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+    border-bottom: 1px solid var(--line);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:nth-child(even) td { background: #fafbfe; }
+
+  /* ---- The page-break trap --------------------------------------------- */
+  tr      { break-inside: avoid; page-break-inside: avoid; }  /* never slice a row */
+  thead   { break-inside: avoid; }
+  section { break-inside: auto; }
+  h2      { break-after: avoid; }                             /* no orphan headings */
+  .ledger { break-before: page; }                             /* long table starts fresh */
+
+  .empty { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="logo">FR</div>
+    <div>
+      <h1>{{ title }}</h1>
+      <p class="sub">
+        Window: {{ data.window.since }} &rarr; {{ data.window.until }}
+        ({{ data.window.days }} day{{ '' if data.window.days == 1 else 's' }})
+        &middot; generated {{ generated_at }}
+      </p>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="label">Total orders</div>
+      <div class="value">{{ data.totals.total_orders }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Total revenue</div>
+      <div class="value">{{ data.totals.total_revenue | money }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Average order value</div>
+      <div class="value">{{ data.totals.average_order_value | money }}</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Top 5 products by revenue</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Product</th><th class="num">Orders</th><th class="num">Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.top_products %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ row.product }}</td>
+          <td class="num">{{ row.orders }}</td>
+          <td class="num">{{ row.revenue | money }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">No orders in this window.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Orders per day (last {{ data.orders_per_day | length }} days)</h2>
+    <table>
+      <thead>
+        <tr><th>Day</th><th class="num">Orders</th><th class="num">Revenue</th></tr>
+      </thead>
+      <tbody>
+        {% for row in data.orders_per_day %}
+        <tr>
+          <td>{{ row.day }}</td>
+          <td class="num">{{ row.orders }}</td>
+          <td class="num">{{ row.revenue | money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="ledger">
+    <h2>All orders in window ({{ data.orders | length }})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Date</th><th>Customer</th><th>Product</th><th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.orders %}
+        <tr>
+          <td>{{ row.id }}</td>
+          <td>{{ row.created_at }}</td>
+          <td>{{ row.customer }}</td>
+          <td>{{ row.product }}</td>
+          <td class="num">{{ row.amount | money }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty">No orders in this window.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+</body>
+</html>
