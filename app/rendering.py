@@ -106,7 +106,7 @@ class PdfRenderer:
                 await page.close()
         return path
 
-    async def __aenter__(self) -> "PdfRenderer":
+    async def __aenter__(self) -> PdfRenderer:
         await self.start()
         return self
 

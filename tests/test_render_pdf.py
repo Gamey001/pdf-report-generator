@@ -30,7 +30,9 @@ def big_db(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def real_client(big_db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+def real_client(
+    big_db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[TestClient]:
     monkeypatch.setenv("DB_PATH", str(big_db))
     monkeypatch.setenv("REPORTS_DIR", str(tmp_path / "reports"))
     get_settings.cache_clear()

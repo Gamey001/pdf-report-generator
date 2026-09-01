@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
@@ -20,6 +21,11 @@ from app.service import generate_report, get_report, list_reports
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
+# The app-scoped resources every endpoint here needs.
+Db = Annotated[sqlite3.Connection, Depends(get_db)]
+Renderer = Annotated[PdfRenderer, Depends(get_renderer)]
+AppSettings = Annotated[Settings, Depends(get_app_settings)]
+
 
 @router.post(
     "",
@@ -29,10 +35,10 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 )
 async def create_report(
     response: Response,
+    conn: Db,
+    renderer: Renderer,
+    settings: AppSettings,
     payload: GenerateReportRequest | None = None,
-    conn: sqlite3.Connection = Depends(get_db),
-    renderer: PdfRenderer = Depends(get_renderer),
-    settings: Settings = Depends(get_app_settings),
 ) -> ReportResponse:
     payload = payload or GenerateReportRequest()
     report, created = await generate_report(
@@ -49,12 +55,12 @@ async def create_report(
 
 
 @router.get("", response_model=list[ReportRecord], summary="List generated reports")
-async def index(conn: sqlite3.Connection = Depends(get_db)) -> list[ReportRecord]:
+async def index(conn: Db) -> list[ReportRecord]:
     return [ReportRecord(**r.to_record()) for r in list_reports(conn)]
 
 
 @router.get("/{report_id}", response_model=ReportRecord, summary="One report's record")
-async def show(report_id: int, conn: sqlite3.Connection = Depends(get_db)) -> ReportRecord:
+async def show(report_id: int, conn: Db) -> ReportRecord:
     report = get_report(conn, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail=f"Report {report_id} not found")
@@ -67,7 +73,7 @@ async def show(report_id: int, conn: sqlite3.Connection = Depends(get_db)) -> Re
     summary="Download the PDF from disk",
     responses={200: {"content": {"application/pdf": {}}}},
 )
-async def download(report_id: int, conn: sqlite3.Connection = Depends(get_db)) -> FileResponse:
+async def download(report_id: int, conn: Db) -> FileResponse:
     report = get_report(conn, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail=f"Report {report_id} not found")

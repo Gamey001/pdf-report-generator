@@ -9,3 +9,4 @@ playwright==1.47.0        # Chromium download works on macOS 12; newer Playwrigh
 pytest==9.1.1
 httpx==0.28.1
 pypdf==6.16.2
+ruff==0.16.5
