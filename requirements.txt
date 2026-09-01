@@ -1,0 +1,12 @@
+# Runtime — pinned to the versions this repo was verified with.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+jinja2==3.1.6
+pydantic-settings==2.15.0
+playwright==1.47.0        # Chromium download works on macOS 12; newer Playwright is fine elsewhere
+
+# Dev / tests
+pytest==9.1.1
+httpx==0.28.1
+pypdf==6.16.2
+ruff==0.16.5

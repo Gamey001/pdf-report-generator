@@ -1,0 +1,19 @@
+# Generated artifacts and databases — the seed script is their recipe
+reports/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
