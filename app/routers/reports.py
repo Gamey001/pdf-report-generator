@@ -1,4 +1,4 @@
-"""Stage 4 — generate a report, look it up, download it.
+"""Stages 4 & 5 — generate a report, look it up, download it.
 
 Only ``GET /reports/{id}/file`` moves megabytes; every other response is a few
 bytes of JSON carrying the file's address. That is "store and link".
@@ -9,7 +9,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
 
 from app.config import Settings
@@ -25,23 +25,27 @@ router = APIRouter(prefix="/reports", tags=["reports"])
     "",
     response_model=ReportResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Generate a report",
+    summary="Generate today's report (or hand back the one that already exists)",
 )
 async def create_report(
+    response: Response,
     payload: GenerateReportRequest | None = None,
     conn: sqlite3.Connection = Depends(get_db),
     renderer: PdfRenderer = Depends(get_renderer),
     settings: Settings = Depends(get_app_settings),
 ) -> ReportResponse:
     payload = payload or GenerateReportRequest()
-    report = await generate_report(
+    report, created = await generate_report(
         conn,
         renderer,
         settings.resolved_reports_dir,
         days=payload.days,
+        force=payload.force,
         daily_window_days=settings.daily_window_days,
     )
-    return ReportResponse(**report.to_record())
+    # 201 for a report that was just made, 200 for one that already existed.
+    response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    return ReportResponse(**report.to_response(reused=not created))
 
 
 @router.get("", response_model=list[ReportRecord], summary="List generated reports")

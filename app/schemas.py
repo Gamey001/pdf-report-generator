@@ -16,6 +16,10 @@ class GenerateReportRequest(BaseModel):
         le=365,
         description="Report window in days, counting back from today.",
     )
+    force: bool = Field(
+        default=False,
+        description="Generate a fresh report even if one already exists for today.",
+    )
 
 
 class ReportRecord(BaseModel):
@@ -25,11 +29,15 @@ class ReportRecord(BaseModel):
     file: str = Field(description="Link to download the PDF — the bytes stay on disk.")
     filename: str
     created_at: str
+    report_date: str
     days: int
 
 
 class ReportResponse(ReportRecord):
-    pass
+    reused: bool = Field(
+        default=False,
+        description="True when an existing report for today was returned instead of a new one.",
+    )
 
 
 class ErrorResponse(BaseModel):

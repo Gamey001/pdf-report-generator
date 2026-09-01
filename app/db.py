@@ -23,11 +23,20 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE INDEX IF NOT EXISTS ix_orders_created_at ON orders(created_at);
 
 CREATE TABLE IF NOT EXISTS reports (
-    id         INTEGER PRIMARY KEY,
-    path       TEXT,                         -- filled in once the PDF is on disk
-    created_at TEXT    NOT NULL,             -- 'YYYY-MM-DD HH:MM:SS'
-    days       INTEGER NOT NULL              -- the report window that was requested
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,  -- ids are never recycled
+    path          TEXT,                      -- filled in once the PDF is on disk
+    created_at    TEXT    NOT NULL,          -- 'YYYY-MM-DD HH:MM:SS'
+    report_date   TEXT    NOT NULL,          -- 'YYYY-MM-DD', the day it was generated
+    days          INTEGER NOT NULL,          -- the report window that was requested
+    params_key    TEXT    NOT NULL,          -- canonical form of the request parameters
+    superseded_at TEXT                       -- set when force=true replaced this one
 );
+
+-- The durable half of Stage 5: the database itself refuses a second *current*
+-- report for the same day and the same parameters, even if two requests race.
+-- Superseded rows stay behind so old links keep working.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_day_params
+    ON reports(report_date, params_key) WHERE superseded_at IS NULL;
 """
 
 
